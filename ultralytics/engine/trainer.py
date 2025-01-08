@@ -168,6 +168,7 @@ class BaseTrainer:
             callback(self)
 
     def train(self):
+        # 这里是接受多种输入格式的训练参数的，多个gpu还是一个gpu还是cpu、mps这种
         """Allow device='', device=None on Multi-GPU systems to default to device=0."""
         if isinstance(self.args.device, str) and len(self.args.device):  # i.e. device='0' or device='0,1,2,3'
             world_size = len(self.args.device.split(","))
@@ -179,6 +180,7 @@ class BaseTrainer:
             world_size = 1  # default to device 0
         else:  # i.e. device=None or device=''
             world_size = 0
+
 
         # Run subprocess if DDP training, else train normally
         if world_size > 1 and "LOCAL_RANK" not in os.environ:
