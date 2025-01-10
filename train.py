@@ -75,27 +75,63 @@ def get_yolo11_model(model_size='n', pretrained=True, nc=None):
     
     return model
 
+def train_yolo11(
+    data_yaml="coco8.yaml",
+    model_size='n',  # 'n', 's', 'm', 'l', 'x'
+    epochs=100,
+    batch_size=16,
+    imgsz=640,
+    device='',
+    workers=8,
+    pretrained=True,
+    resume=False,
+    project='runs/train',
+    name='exp',
+):
+    """训练YOLO11检测模型"""
+    # 1. 配置训练参数
+    overrides = {
+        # 'model': "ultralytics/cfg/models/11/yolo11.yaml",  # 使用配置文件路径
+        'model': "yolo11x.pt",  # 使用配置文件路径
+        'data': data_yaml,  # 数据集配置
+        'epochs': epochs,  # 训练轮数
+        'batch': batch_size,  # 批次大小
+        'imgsz': imgsz,  # 输入图像大小3
+        'device': device,  # 训练设备
+        'workers': workers,  # 数据加载的工作进程数
+        'project': project,  # 保存训练结果的项目目录
+        'name': name,  # 实验名称
+        'resume': resume,  # 是否从中断处恢复训练
+        'val': True,  # 是否进行验证
+        'save': True,  # 是否保存模型
+        'save_period': -1,  # 每隔多少轮保存一次，-1表示只保存最后一轮
+        'patience': 50,  # 早停的耐心值
+        'pretrained': pretrained,  # 是否使用预训练权重
+    }
+
+    # 2. 创建训练器并开始训练
+    from ultralytics.models.yolo.detect.train import DetectionTrainer
+    trainer = DetectionTrainer(overrides=overrides)
+    trainer.train()
+
+    return str(trainer.best)  # 直接返回最佳模型的路径字符串
 
 if __name__ == '__main__':
-    # 帮我写一下调用get_yolo11_model的代码，然后随机创造一个tensor，进行预测
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # 训练示例
+    best_model_path = train_yolo11(
+        data_yaml="coco8.yaml",  # 数据集配置文件
+        model_size='n',  # 使用nano模型
+        epochs=3,  # 训练3轮
+        batch_size=8,  # 批次大小为8
+        imgsz=640,  # 输入图像大小640x640
+        device='0',  # 使用第一块GPU
+        workers=4,  # 4个数据加载进程
+        pretrained=True,  # 使用预训练权重
+        project='runs/train',  # 保存在runs/train目录下
+        name='yolo11n_coco8',  # 实验名称
+    )
     
-    model = get_yolo11_model(model_size='x', pretrained=True).to(device)
-    # model = get_yolo11_model(model_size='x', pretrained=False).to(device)
-
-    # 创建随机输入张量 (batch_size, channels, height, width)
-    batch_size = 1
-    x = torch.randn(batch_size, 3, 640, 640, device=device)
-    
-    # 将模型设置为评估模式
-    model.eval()
-    
-    # 使用模型进行预测
-    with torch.no_grad():
-        predictions = model(x)
-    
-    print(f"预测输出形状: {predictions[0].shape}")
-    print(f"预测结果示例:\n{predictions[0][0][:5]}")  # 打印第一张图片的前5个预测框
+    print(f"训练完成！最佳模型保存在: {best_model_path}")
 
 
 
